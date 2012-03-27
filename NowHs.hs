@@ -25,6 +25,8 @@ newtype NowHsT m a = NowHs (ErrorT NowHsError m a)
                    deriving (Functor, Monad, MonadIO, MonadTrans,
                              MonadError NowHsError)
 
+type Prot = WS.Hybi00
+
 type NowHs = NowHsT (WS.WebSockets Prot)
 
 class (Monad m) => MonadNowHs m where
@@ -32,8 +34,3 @@ class (Monad m) => MonadNowHs m where
 
 instance MonadNowHs (NowHsT (WS.WebSockets Prot)) where
     liftNowHs = id
-
-runNowHs :: NowHs a -> WS.WebSockets Prot (Either NowHsError a)
-runNowHs (NowHs n) = runErrorT n
-
-type Prot = WS.Hybi00

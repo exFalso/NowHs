@@ -9,6 +9,8 @@ function NowHs (server, port) {
     var thisRef = this;
 
     this.socket.onmessage = function (msg) {
+
+	console.log (msg);
 	var msgJSON = JSON.parse(msg.data);
 
 	var functions = msgJSON[0];

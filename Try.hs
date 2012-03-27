@@ -29,8 +29,9 @@ afg :: SomeData -> NowHs Int
 afg d = return $ first d
 
 interface :: Interface NowHs
-interface = $(genInterface ['asd, 'afg])
+interface = $(genInterface ['asd,
+                            'afg])
 
-main = nowHsServer "127.0.0.1" 8888 interface id
+main = runNowHs "127.0.0.1" 8888 . nowHs $ interface
 
 
