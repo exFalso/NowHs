@@ -10,7 +10,6 @@ function NowHs (server, port) {
 
     this.socket.onmessage = function (msg) {
 
-	console.log (msg);
 	var msgJSON = JSON.parse(msg.data);
 
 	var functions = msgJSON[0];
@@ -50,11 +49,8 @@ function NowHs (server, port) {
 	for (var i in functions) {
 
 	    // using raw name for interface but qualified name internally
-	    thisRef[functions[i].functionNameRaw] = function (fun) { // closure needed
+	    thisRef[functions[i].functionNameRaw] = function (fun, schemaFields) { // closure needed
 		return function () {
-
-		    var schemaFields = thisRef.funcSchFields[fun.functionName];
-
 
 		    // check arguments
 		    if (arguments.length - 1 !== schemaFields.length) {
@@ -65,20 +61,26 @@ function NowHs (server, port) {
 			jsschema.checkField (schemaFields[arg], arguments[arg]);
 		    }
 
+		    if (typeof arguments[arguments.length - 1] !== "function") {
+			throw "Last argument should be a callback function";
+		    }
+
 		    var functionCall = {
 			funName : fun.functionName,
 			funArgs : Array.prototype.slice.call (arguments, 0, arguments.length - 1), // retarded javascript
 		    }
 		    var jsn = JSON.stringify (functionCall);
-		    console.log (jsn);
-		    thisRef.socket.send (jsn);
-		    // TODO: FIGURE OUT asynchronous calls (generate hash for each fcall?)
-		}
-	    } (functions[i]);
-	}
 
-	thisRef.socket.onmessage = function (msg) {
-	    console.log ("Yipiieee: " + msg);
+		    thisRef.socket.send (jsn);
+
+		    // TODO: FIGURE OUT asynchronous calls (generate hash for each fcall?)
+		    var func = arguments[arguments.length - 1]; // freaking scoped arguments wtf javascript
+		    thisRef.socket.onmessage = function (msg) {
+			func (JSON.parse (msg.data));
+		    }
+		}
+
+	    } (functions[i], thisRef.funcSchFields[functions[i].functionName]);
 	}
 
     };
