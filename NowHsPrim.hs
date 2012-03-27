@@ -30,5 +30,8 @@ nowHsM iface sink = do
     forever $ do
         msg <- liftWS WS.receiveData
         case decode' msg of
-            Nothing -> err $ JSONParseError "Cannot parse as FunctionCall"
-            Just fcall -> interfaceInternal iface fcall
+            Nothing -> do
+                err . JSONParseError $ "Cannot parse as FunctionCall: " ++ show msg
+            Just fcall -> do
+                ret <- interfaceInternal iface fcall
+                liftNowHs . liftIO $ WS.sendSink sink . WS.textData $ encode ret

@@ -9,6 +9,7 @@ import Language.Haskell.TH.Lift
 import Data.Aeson.TH
 
 data Function = Function { functionName     :: Name
+                         , functionNameRaw  :: String -- for client side prettyness
                          , functionArgTypes :: [SchemaField]
                          , functionRetType  :: SchemaField }
               deriving (Show)

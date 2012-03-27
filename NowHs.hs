@@ -7,10 +7,13 @@ import Control.Monad.State
 import Control.Monad.Error
 import Control.Exception
 
+import Language.Haskell.TH
+
+
 import qualified Network.WebSockets as WS
 
 data NowHsError
-    = NoSuchFunction
+    = NoSuchFunction Name
     | IncorrectNumArgs
     | JSONParseError String
     deriving (Show, Typeable)

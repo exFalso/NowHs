@@ -33,11 +33,13 @@ genInterface namesR = do
     -- uniqify
     let names = Set.toList . Set.fromList $ namesR
     funs <- mapM genFun names
-    funPairs <- ListE <$> zipWithM (\n f -> [| (n, $(return f)) |]) names funs
+    -- mkName . show NEEDED OTHERWISE WONT BE ABLE TO CALL FROM js!!!
+    funPairs <- ListE <$> zipWithM (\n f -> [| (mkName . show $ n,
+                                                $(return f)) |]) names funs
     internal <- [| \(FunctionCall nam vals) ->
                   let mp = Map.fromList $(return funPairs) in do
                       case Map.lookup nam mp of
-                          Nothing -> liftNowHs $ throwError NoSuchFunction
+                          Nothing -> liftNowHs $ throwError (NoSuchFunction nam)
                           Just f -> f vals
                  |]
     external <- [| runState (sequence $(ListE <$> mapM funSchemaNames names)) Set.empty |]
@@ -59,6 +61,7 @@ funSchemaNames nam = do
               retF = $(return retSchField)
           modify (\s -> foldl (flip Set.insert) s $(ListE <$> anySchemas))
           return $ Function { functionName     = nam
+                            , functionNameRaw  = nameBase nam
                             , functionArgTypes = argFs
                             , functionRetType  = retF }
      |]
