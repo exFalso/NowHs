@@ -16,6 +16,7 @@ data PrimType
     = Num
     | Str
     | Obj
+    | Fun
     deriving (Show, Eq, Ord)
 $(deriveLift ''PrimType)
 
@@ -23,6 +24,7 @@ instance ToJSON PrimType where
     toJSON Num = String "number"
     toJSON Str = String "string"
     toJSON Obj = String "object"
+    toJSON Fun = String "function"
 
 -- a type that can be qualified with required etc
 -- also used for interface function arguments

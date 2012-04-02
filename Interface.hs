@@ -3,10 +3,11 @@
 module Interface where
 
 import Function
+import FunctionCall
 import Schema
 import SchemaTH
 import SchemaTypes
-import FunctionCall
+import Message
 import NowHs
 
 import Data.Aeson
@@ -103,14 +104,14 @@ genFun nam = do
                                  foldl AppE (VarE nam) vars 
                                , NoBindS returnEx
                                                 ])) []
-        , Match WildP (NormalB $ AppE (VarE 'throwError) incor) []
+        , Match WildP (NormalB $ AppE (VarE 'liftNowHs) $ AppE (VarE 'throwError) incor) []
         ]
 
 fJSON :: Name -> Q (Stmt, Name)
 fJSON nam = do
     n <- newName "n"
     ex <- [| case $(return $ AppE (VarE 'fromJSON) (VarE nam)) of
-                Error str -> throwError $ JSONParseError str
+                Error str -> liftNowHs . throwError $ JSONParseError str
                 Success v -> return v
            |]
     return $ (BindS (VarP n) ex, n)
