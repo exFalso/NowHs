@@ -2,6 +2,7 @@
 module Schema where
 
 import JsonInstances
+import JsonUtils
 
 import Data.Aeson
 import Data.Aeson.TH
@@ -31,10 +32,6 @@ data SchemaType
     | SchemaName Name           -- name of haskell type, js will make this a reference to the schema object
     deriving (Show, Eq, Ord)
 $(deriveLift ''SchemaType)
-
-constr :: (ToJSON a) => Text -> a -> Value
-constr ty val = object [ "type" .= ty
-                       , "value" .= val ]
 
 instance ToJSON SchemaType where
     toJSON (Prim ty)         = constr "Prim" ty
@@ -86,7 +83,7 @@ instance Eq AnySchema where
 
 instance Ord AnySchema where
     (MkAnySchema (Schema n1 _)) <= (MkAnySchema (Schema n2 _)) = n1 <= n2
-    
+
 
 -- instance FromJSON AnySchema where
 --     parseJSON v = MkAnySchema <$> parseJSON v

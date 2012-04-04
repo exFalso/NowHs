@@ -1,33 +1,40 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module NowHsPrim where
 
 import Interface
+import Message
 import NowHs
 
 import qualified Network.WebSockets as WS
 
 import Data.Aeson
+import Control.Concurrent.STM
 import Control.Monad.Trans
 import Control.Monad.Error
+import Control.Monad.Reader
 
-runNowHs :: String -> Int -> NowHs a -> IO ()
-runNowHs ip port (NowHs n) = WS.runServer ip port $ \rq -> do 
+runNowHs :: String -> Int -> s -> NowHsWs s () -> IO ()
+runNowHs ip port sessionState (NowHs n) = WS.runServer ip port $ \rq -> do
     WS.acceptRequest rq
     liftIO $ putStrLn "Client connected"
-    e <- runErrorT n
+    sessionStateTVar <- liftIO $ newTVarIO sessionState
+    e <- runErrorT $ runReaderT n sessionStateTVar
     either WS.throwWsError (const $ return ()) e
 
-nowHs :: (MonadNowHs m) => Interface m -> m ()
+
+nowHs :: Interface s -> NowHsWs s ()
 nowHs iface = do
-    let liftWS = liftNowHs . lift
-        err    = liftNowHs . throwError
-    sink <- liftWS $ WS.getSink
-    liftNowHs . liftIO $ putStrLn "Sending interface..."
-    liftNowHs . liftIO $ WS.sendSink sink . WS.textData $ encode (interfaceExternal iface)
+    sink <- lift WS.getSink
+    liftIO $ putStrLn "Sending interface..."
+    liftIO $ WS.sendSink sink . WS.textData $ encode (interfaceExternal iface)
     forever $ do
-        msg <- liftWS WS.receiveData
+        msg <- lift WS.receiveData
         case decode' msg of
             Nothing -> do
-                err . JSONParseError $ "Cannot parse as FunctionCall: " ++ show msg
-            Just fcall -> do
-                ret <- interfaceInternal iface fcall
-                liftNowHs . liftIO $ WS.sendSink sink . WS.textData $ encode ret
+                throwError . JSONParseError $ "Cannot parse as ClientMessage: " ++ show msg
+            Just x -> case x of
+                ClientFCall { cFunName, cFunId, cFunArgs } -> void . forkNowHs $ do
+                    ret <- interfaceInternal iface (cFunName, cFunArgs)
+                    liftIO $ WS.sendSink sink . WS.textData $
+                        encode ServerFunctionReturn { sFunId = cFunId , sRetVal = ret }
