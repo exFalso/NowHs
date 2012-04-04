@@ -1,59 +1,40 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module NowHsPrim where
 
 import Interface
+import Message
 import NowHs
 
 import qualified Network.WebSockets as WS
 
 import Data.Aeson
-import Control.Async
+import Control.Concurrent.STM
 import Control.Monad.Trans
 import Control.Monad.Error
+import Control.Monad.Reader
 
-runNowHs :: String -> Int -> NowHs a -> IO ()
-runNowHs ip port (NowHs n) = WS.runServer ip port $ \rq -> do 
+runNowHs :: String -> Int -> s -> NowHsWs s () -> IO ()
+runNowHs ip port sessionState (NowHs n) = WS.runServer ip port $ \rq -> do
     WS.acceptRequest rq
     liftIO $ putStrLn "Client connected"
-    e <- wait $ runErrorT n
+    sessionStateTVar <- liftIO $ newTVarIO sessionState
+    e <- runErrorT $ runReaderT n sessionStateTVar
     either WS.throwWsError (const $ return ()) e
 
-nowHs :: (MonadNowHs m) => Interface m -> m ()
+
+nowHs :: Interface s -> NowHsWs s ()
 nowHs iface = do
-    let liftWS = liftNowHs . lift . lift
-        err    = liftNowHs . throwError
-    sink <- liftWS $ WS.getSink
-    liftNowHs . liftIO $ putStrLn "Sending interface..."
-    liftNowHs . liftIO $ WS.sendSink sink . WS.textData $ encode (interfaceExternal iface)
+    sink <- lift WS.getSink
+    liftIO $ putStrLn "Sending interface..."
+    liftIO $ WS.sendSink sink . WS.textData $ encode (interfaceExternal iface)
     forever $ do
-        msg <- liftWS WS.receiveData
+        msg <- lift WS.receiveData
         case decode' msg of
             Nothing -> do
-                err . JSONParseError $ "Cannot parse as FunctionCall: " ++ show msg
-            Just fcall -> do
-                ret <- interfaceInternal iface fcall
-                liftNowHs . liftIO $ WS.sendSink sink . WS.textData $ encode ret
-
-
-nowHsRun :: (MonadNowHs m) => Interface -> NowHs ()
-nowHsRun frk _ = do
-    ...
-        msg <- liftWS WS.receiveData
-         $ processMsg msg
-
-
-newtype NowHsT s m a = NowHs (ReaderT (TVar s) m a)
-
-type NowHsOur s = NowHsT s WS.WebSockets
-
-type NowHs s = NowHsT s IO
-
-instance MonadState s NowHs where
-    put aasd = do
-        tv <- NowHs ask
-        liftIO . atomically $ writeTVar tv aasd
-    get = do
-        tv <- NowHs ask
-        liftIO . atomically $ readTVar tv
-
-nowHs :: (MonadNowHs m, Forkable m) => Interface m -> m ()
-nowHs = nowHsRun fork
+                throwError . JSONParseError $ "Cannot parse as ClientMessage: " ++ show msg
+            Just x -> case x of
+                ClientFCall { cFunName, cFunId, cFunArgs } -> void . forkNowHs $ do
+                    ret <- interfaceInternal iface (cFunName, cFunArgs)
+                    liftIO $ WS.sendSink sink . WS.textData $
+                        encode ServerFunctionReturn { sFunId = cFunId , sRetVal = ret }

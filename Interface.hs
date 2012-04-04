@@ -7,7 +7,6 @@ import FunctionCall
 import Schema
 import SchemaTH
 import SchemaTypes
-import Message
 import NowHs
 
 import Data.Aeson
@@ -24,8 +23,8 @@ import Control.Arrow
 import Language.Haskell.TH
 import Language.Haskell.TH.Lift as L
 
-data Interface m
-    = Interface { interfaceInternal :: FunctionCall -> m Value
+data Interface s
+    = Interface { interfaceInternal :: (Name, [Value]) -> NowHs s Value
                 , interfaceExternal :: ([Function], Set.Set AnySchema) }
 
 -- $(interface names) :: MonadNowHs m => Interface m
@@ -37,10 +36,10 @@ genInterface namesR = do
     -- mkName . show NEEDED OTHERWISE WONT BE ABLE TO CALL FROM js!!!
     funPairs <- ListE <$> zipWithM (\n f -> [| (mkName . show $ n,
                                                 $(return f)) |]) names funs
-    internal <- [| \(FunctionCall nam vals) ->
+    internal <- [| \(nam, vals) ->
                   let mp = Map.fromList $(return funPairs) in do
                       case Map.lookup nam mp of
-                          Nothing -> liftNowHs $ throwError (NoSuchFunction nam)
+                          Nothing -> throwError (NoSuchFunction nam)
                           Just f -> f vals
                  |]
     external <- [| runState (sequence $(ListE <$> mapM funSchemaNames names)) Set.empty |]
@@ -76,8 +75,9 @@ anySchemaName (MkAnySchema sch) = schemaName sch
 
 getArgsRet :: Type -> Q ([Type], Type)
 getArgsRet (AppT (AppT ArrowT typ) rest) = first (typ :) <$> getArgsRet rest
-getArgsRet (AppT _ ret) = return ([], ret) -- _ is the monad
-getArgsRet _ = fail "Function has to be monadic with (MonadNowHs m)"
+getArgsRet (AppT (AppT (ConT m) _) ret)
+    | m == ''NowHs = return ([], ret)
+getArgsRet _ = fail "Function has to be monadic (NowHs)"
 
 funType :: Name -> Q Type
 funType name = do
@@ -101,7 +101,7 @@ genFun nam = do
     return . LamE [VarP vals] $ CaseE (VarE vals)
         [ Match pat (NormalB $ DoE
                      (binds ++ [ BindS (VarP resNam) $
-                                 foldl AppE (VarE nam) vars 
+                                 foldl AppE (VarE nam) vars
                                , NoBindS returnEx
                                                 ])) []
         , Match WildP (NormalB $ AppE (VarE 'liftNowHs) $ AppE (VarE 'throwError) incor) []

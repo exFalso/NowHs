@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, DeriveDataTypeable, DefaultSignatures #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses, DeriveDataTypeable #-}
 
 module NowHs where
 
@@ -8,6 +8,8 @@ import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Exception
+import Control.Concurrent
+import Control.Concurrent.STM
 
 import Language.Haskell.TH
 
@@ -23,24 +25,41 @@ data NowHsError
 instance Error NowHsError
 instance Exception NowHsError
 
-newtype NowHsT m a = NowHs (ErrorT NowHsError m a)
-                   deriving (Functor, Monad, MonadIO, MonadTrans,
-                             MonadError NowHsError)
+newtype NowHsT s m a = NowHs { unNowHs :: ReaderT (TVar s) (ErrorT NowHsError m) a }
+                     deriving (Functor, Monad, MonadIO,
+                               MonadError NowHsError)
+
+instance MonadTrans (NowHsT s) where
+	lift = NowHs . lift . lift
+
+mapNowHsT :: (m (Either NowHsError a) -> n (Either NowHsError b)) -> NowHsT s m a -> NowHsT s n b
+mapNowHsT f = NowHs . mapReaderT (mapErrorT f) . unNowHs
+
+forkNowHs :: MonadIO m => NowHs s () -> NowHsT s m ThreadId
+forkNowHs now= do
+    let mapping io = do
+        liftIO $ fmap Right $ forkIO (fmap (either throw id) io)
+    tid <- mapNowHsT mapping now
+    return tid
 
 type Prot = WS.Hybi00
 
-type NowHs = NowHsT (AsyncT (WS.WebSockets Prot))
 
-class (Monad m) => MonadNowHs m where
-    liftNowHs :: NowHs a -> m a
-    default liftNowHs :: (MonadTrans t, MonadNowHs m, Monad (t m)) => NowHs a -> t m a
-    liftNowHs = lift . liftNowHs
+type NowHs s = NowHsT s IO
 
-instance MonadNowHs NowHs where
-    liftNowHs = id
+type NowHsWs s = NowHsT s (WS.WebSockets Prot)
 
-instance (MonadNowHs m) => MonadNowHs (StateT s m)
-instance (MonadNowHs m) => MonadNowHs (ReaderT r m)
+instance (MonadIO m) => MonadState s (NowHsT s m) where
+    put aasd = do
+        tv <- NowHs ask
+        liftIO . atomically $ writeTVar tv aasd
+    get = do
+        tv <- NowHs ask
+        liftIO . atomically $ readTVar tv
 
 
-    
+--class (Monad m) => MonadNowHs m where
+--    liftNowHs :: NowHs a -> m a
+
+--instance MonadNowHs (NowHsT (WS.WebSockets Prot)) where
+--    liftNowHs = id
