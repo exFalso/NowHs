@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, FlexibleInstances, FlexibleContexts, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Main where
 
 import NowHs
@@ -11,7 +11,6 @@ import Language.Haskell.TH.Syntax
 import Control.Applicative
 import Control.Concurrent
 import Control.Monad.IO.Class
-import Control.Monad.State as S
 import Data.Aeson
 import Data.Aeson.TH
 import Data.Set
@@ -35,8 +34,7 @@ afg d = return $ first d
 
 interface :: Interface ()
 interface = $(genInterface [ 'asd
-                           , 'afg 
-                           , 'prnt ])
+                           , 'afg])
 
 main = runNowHs "127.0.0.1" 8888 () . nowHs $ interface
 

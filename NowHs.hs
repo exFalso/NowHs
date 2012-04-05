@@ -3,7 +3,6 @@
 module NowHs where
 
 import Data.Typeable
-import Control.Async
 import Control.Monad.State
 import Control.Monad.Error
 import Control.Monad.Reader

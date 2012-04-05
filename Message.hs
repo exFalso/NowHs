@@ -11,8 +11,6 @@ import Data.Int (Int64)
 import Data.Text
 import Language.Haskell.TH
 
-import Language.Haskell.TH
-
 data ClientMessage
     = ClientFCall  { cFunName :: Name
                                  , cFunId :: Int64
