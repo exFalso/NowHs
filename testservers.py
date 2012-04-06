@@ -2,7 +2,7 @@
 
 commands = [
 	"runhaskell Testserver.hs",
-	"python -m SimpleHTTPServer 7357",
+	"python2 -m SimpleHTTPServer 7357",
 ]
 
 if __name__ == '__main__':

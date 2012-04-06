@@ -18,8 +18,8 @@ $(deriveJSON id ''User)
 $(deriveSchema ''User)
 
 -- TODO needs HasSchema Bool
---authenticated_rpc :: User -> NowHs () Bool
---authenticated_rpc user = return $ name user >= 18
+authenticated_rpc :: User -> NowHs () Bool
+authenticated_rpc user = return $ name user >= 18
 
 firstUser_rpc :: NowHs () User
 firstUser_rpc = return $ User { name = "John", age = 17 }
@@ -27,7 +27,7 @@ firstUser_rpc = return $ User { name = "John", age = 17 }
 
 interface :: Interface ()
 interface = $(genInterface [ 'sum_rpc
-                           --, 'authenticated_rpc
+                           , 'authenticated_rpc
                            , 'firstUser_rpc
                            ])
 

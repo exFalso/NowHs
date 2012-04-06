@@ -16,14 +16,16 @@ import Control.Applicative
 data PrimType
     = Num
     | Str
+    | Boolean
     | Obj
     deriving (Show, Eq, Ord)
 $(deriveLift ''PrimType)
 
 instance ToJSON PrimType where
-    toJSON Num = String "number"
-    toJSON Str = String "string"
-    toJSON Obj = String "object"
+    toJSON Num     = String "number"
+    toJSON Str     = String "string"
+    toJSON Obj     = String "object"
+    toJSON Boolean = String "boolean"
 
 -- a type that can be qualified with required etc
 -- also used for interface function arguments

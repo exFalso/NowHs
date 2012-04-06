@@ -55,9 +55,12 @@ deriveSchemaField t = case t of
     VarT v              -> do
         polyTyp <- deriveSchemaPolyTyp v
         S.lift . S.lift $ [| SchemaField Required $(return polyTyp) |]
-    ConT c              -> S.lift $ do
-        schTyp <- nameToSchTyp c
-        S.lift $ [| SchemaField Required schTyp |]
+    ConT c                      -- add primitives here
+        | c == ''Bool -> S.lift . S.lift $
+                         [| SchemaField Required (Prim Boolean) |]            
+        | otherwise-> S.lift $ do
+                               schTyp <- nameToSchTyp c
+                               S.lift $ [| SchemaField Required schTyp |]
     AppT ListT ty       -> do
         schTyp <- deriveSchemaTyp ty
         S.lift . S.lift $ [| SchemaField Repeated $(return schTyp) |]
