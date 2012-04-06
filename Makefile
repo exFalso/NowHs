@@ -20,5 +20,5 @@ clean: statics_clean
 
 init: clean statics_fetch_force
 
-testservers:
+testservers: statics_fetch
 	./testservers.py

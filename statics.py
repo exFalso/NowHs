@@ -8,7 +8,7 @@ STATICS = {
 	'js/jasmine-html.js': 'https://raw.github.com/pivotal/jasmine/master/lib/jasmine-core/jasmine-html.js',
 	'css/jasmine.css': 'https://raw.github.com/pivotal/jasmine/master/lib/jasmine-core/jasmine.css',
 
-	'js/coffee-script.js': 'https://github.com/jashkenas/coffee-script/raw/master/extras/coffee-script.js',
+	'js/coffee-script.js': 'https://raw.github.com/jashkenas/coffee-script/master/extras/coffee-script.js',
 
 	'runtogether.py': 'https://raw.github.com/nh2/runtogether/master/runtogether.py',
 }
