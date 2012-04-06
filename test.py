@@ -2,7 +2,7 @@
 
 SERVER_COMMANDS = [
 	"runhaskell Testserver.hs",
-	"python -m SimpleHTTPServer 7357",
+	"bash -c 'python3 -m http.server || python -m SimpleHTTPServer 7357'",
 ]
 
 PHANTOM_TEST_COMMAND = "bash -c 'sleep 1 && phantomjs js/run_jasmine_test.coffee test/test.html'"
