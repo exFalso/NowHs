@@ -80,3 +80,7 @@ Library
 
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:
+
+executable testserver
+  main-is: Testserver.hs
+  Build-depends:
