@@ -1,4 +1,4 @@
-function NowHs (server, port) {
+function NowHs (server, port, readyCallback) {
 
 	this.socket = new WebSocket("ws://" + server + ":" + port);
 
@@ -114,6 +114,9 @@ function NowHs (server, port) {
 			} (functions[i], self.funcSchFields[functions[i].functionName]);
 		}
 
+		if (typeof readyCallback === "function") {
+			readyCallback ();
+		}
 	};
 
 	// returns primitive type or reference to schema
