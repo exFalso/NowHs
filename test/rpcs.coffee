@@ -2,7 +2,7 @@ window.newNowHs = newNowHs = (callback) ->
   new NowHs "localhost", 8888, callback
 
 
-returns = (call, expected, timeout = 100) ->
+returns = (call, expected, timeout = 10) ->
   runs ->
     @result = "not set"
     call (res) => @result = res
@@ -19,7 +19,7 @@ describe "RPCs: client -> server", ->
 
   it "connects via WebSocket", ->
     runs -> nowhs = newNowHs()
-    waits 100
+    waits 50
     runs -> expect(nowhs.socket.readyState).toEqual 1
 
   it "runs add :: Int -> Int -> Int", ->
