@@ -31,3 +31,9 @@ describe "RPCs: client -> server", ->
 
   it "returns composite data structures: firstUser :: User", ->
     returns ((res) -> nowhs.firstUser_rpc res), { name: 'John', age: 17 }
+
+  # Don't expect this yet - see http://code.google.com/p/phantomjs/issues/detail?id=486
+  # it "can close the WebSocket", ->
+  #   runs -> nowhs.socket.close()
+  #   waits 100
+  #   runs -> expect(nowhs.socket.readyState).toEqual 3
