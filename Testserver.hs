@@ -19,7 +19,7 @@ $(deriveSchema ''User)
 
 -- TODO needs HasSchema Bool
 authenticated_rpc :: User -> NowHs () Bool
-authenticated_rpc user = return $ name user >= 18
+authenticated_rpc user = return $ age user >= 18
 
 firstUser_rpc :: NowHs () User
 firstUser_rpc = return $ User { name = "John", age = 17 }
