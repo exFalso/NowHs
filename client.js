@@ -80,7 +80,6 @@ function NowHs (server, port, readyCallback) {
 					cFunArgs : Array.prototype.slice.call (arguments, 0, arguments.length - 1) // retarded javascript
 				};
 
-				console.log("callobj", functionCall);
 				var jsn = JSON.stringify ({ ClientFCall: functionCall });
 
 				self.socket.send (jsn);
@@ -99,7 +98,6 @@ function NowHs (server, port, readyCallback) {
 					//     sRetVal: [callback data]
 					//   }
 					// }
-					console.log("res", res);
 					switch (res.type) {
 					case "ServerFunctionReturn":
 						self.callbacks[res.value.sFunId](res.value.sRetVal);
