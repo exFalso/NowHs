@@ -10,6 +10,10 @@ STATICS = {
 
 	'js/coffee-script.js': 'https://raw.github.com/jashkenas/coffee-script/master/extras/coffee-script.js',
 
+	# TODO Get this from upstream once merged (https://github.com/jcarver989/phantom-jasmine/pull/1)
+	'js/console-runner.js': 'https://raw.github.com/nh2/phantom-jasmine/fix-long-running-tests/lib/console-runner.js',
+	'js/run_jasmine_test.coffee': 'https://raw.github.com/nh2/phantom-jasmine/fix-long-running-tests/lib/run_jasmine_test.coffee',
+
 	'runtogether.py': 'https://raw.github.com/nh2/runtogether/master/runtogether.py',
 }
 

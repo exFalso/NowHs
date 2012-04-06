@@ -20,5 +20,8 @@ clean: statics_clean
 
 init: clean statics_fetch_force
 
-testservers: statics_fetch
-	./testservers.py
+test: statics_fetch
+	./test.py
+
+browsertest: statics_fetch
+	./test.py --browser
