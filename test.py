@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
 SERVER_COMMANDS = [
-	"runhaskell Testserver.hs",
-	"bash -c 'python3 -m http.server || python -m SimpleHTTPServer 7357'",
+	"./dist/build/testserver/testserver",
+	"bash -c 'python3 -m http.server 7357 || python -m SimpleHTTPServer 7357'",
 ]
 
 PHANTOM_TEST_COMMAND = "bash -c 'sleep 1 && phantomjs js/run_jasmine_test.coffee test/test.html'"
 
 BROWSER_URL = "http://localhost:7357/test/test.html"
 
+# Seconds to wait before starting the browser when --browser is given
+BROWSER_DELAY = 2
 
 import argparse
 import runtogether
@@ -17,13 +19,12 @@ import time
 import webbrowser
 from multiprocessing import Process
 
-def shutdown_callback():
-	# TODO try to fix this in runtogether (runhaskell replaces itself with ghc)
-	subprocess.call(['pkill',  '-f', 'ghc .*Testserver'])
-
 def runbrowser():
-	time.sleep(1)
-	webbrowser.open(BROWSER_URL)
+	try:
+		time.sleep(BROWSER_DELAY)
+		webbrowser.open(BROWSER_URL)
+	except KeyboardInterrupt:
+		print("Browser start interrupted")
 
 def parse_args():
 	parser = argparse.ArgumentParser(description='Runs the tests')
@@ -38,13 +39,21 @@ def main():
 
 	commands = SERVER_COMMANDS
 
+	procs = []
+
 	if args.browser:
 		# Show the browser tests in the default browser
-		Process(target=runbrowser).start()
+		browserProc = Process(target=runbrowser)
+		procs += [browserProc]
+		browserProc.start()
 	else:
 		commands += [PHANTOM_TEST_COMMAND]
 
-	runtogether.runtogether(commands, kill_timeout=1, shutdown_callback=shutdown_callback)
+	def killProcs():
+		for proc in procs:
+			proc.terminate()
+
+	runtogether.runtogether(commands, kill_timeout=1, shutdown_callback=killProcs)
 
 if __name__ == '__main__':
 	main()
