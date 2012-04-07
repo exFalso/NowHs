@@ -1,9 +1,10 @@
-all: init
+all: clean init build
 
 
 staticfetcher.py:
 	wget https://raw.github.com/nh2/staticfetcher/master/staticfetcher.py
 
+.PHONY: statics_fetch statics_fetch_force statics_clean
 
 statics_fetch: staticfetcher.py
 	python statics.py fetch
@@ -15,13 +16,23 @@ statics_clean: staticfetcher.py
 	python statics.py clean
 
 
+.PHONY: clean init build test browsertest
+
 clean: statics_clean
 	rm -f staticfetcher.py
+	rm -f .cabal-configured
 
-init: clean statics_fetch_force
+init: statics_fetch_force
 
-test: statics_fetch
+.cabal-configured: *.cabal
+	cabal configure
+	touch .cabal-configured
+
+build: .cabal-configured
+	cabal build
+
+test: build statics_fetch
 	./test.py
 
-browsertest: statics_fetch
+browsertest: build statics_fetch
 	./test.py --browser
