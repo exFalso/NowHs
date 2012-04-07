@@ -25,7 +25,7 @@ describe "RPCs: client -> server", ->
   it "runs add :: Int -> Int -> Int", ->
     returns ((res) -> nowhs.sum_rpc 1, 2, res), 3
 
-  it "runs authenticated :: User -> Bool", ->
+  it "accepts composite data structures: authenticated :: User -> Bool", ->
     returns ((res) -> nowhs.authenticated_rpc { name: 'John', age: 17 }, res), false
     returns ((res) -> nowhs.authenticated_rpc { name: 'Jack', age: 18 }, res), true
 
