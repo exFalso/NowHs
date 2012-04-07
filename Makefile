@@ -18,7 +18,8 @@ statics_clean: staticfetcher.py
 
 .PHONY: clean init build test browsertest
 
-clean: statics_clean
+clean:
+	(test -f staticfetcher.py && make statics_clean) || true
 	rm -f staticfetcher.py
 	rm -f .cabal-configured
 
