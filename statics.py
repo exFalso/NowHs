@@ -4,6 +4,8 @@
 ROOT_DIR = '.'
 
 STATICS = {
+	'jsschema.js': 'https://raw.github.com/nh2/jsschema/schemafields/jsschema.js',
+
 	'js/jasmine.js': 'https://raw.github.com/pivotal/jasmine/master/lib/jasmine-core/jasmine.js',
 	'js/jasmine-html.js': 'https://raw.github.com/pivotal/jasmine/master/lib/jasmine-core/jasmine-html.js',
 	'css/jasmine.css': 'https://raw.github.com/pivotal/jasmine/master/lib/jasmine-core/jasmine.css',
