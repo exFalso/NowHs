@@ -79,7 +79,7 @@ _SELECTOR_NAME = "constr"
 instance (GJSONSum (f1 :+: f2)) => GJSON (M1 D dn (f1 :+: f2)) where
     gtoJSON (M1 a) = gtoJSONSum a
     gfromJSON (Aeson.Object hmap) = do
-        let fromCnstr = HashMap.fromList $ gfromJSONSum (Proxy :: Proxy (f1 :+: f2))
+        let fromCnstr = HashMap.fromList $ gfromJSONSum
         (Aeson.String sel) <- hmapLookup _SELECTOR_NAME
         constr <- case HashMap.lookup sel fromCnstr of
                   Nothing -> Aeson.Error $ "Invalid constructor \"" ++ Text.unpack sel ++ "\""
@@ -96,23 +96,23 @@ instance (GJSONSum (f1 :+: f2)) => GJSON (M1 D dn (f1 :+: f2)) where
 
 class GJSONSum f where
     gtoJSONSum :: f x -> Aeson.Value
-    gfromJSONSum :: Proxy f -> [(Text.Text, Aeson.Value -> Aeson.Result (f x))]
+    gfromJSONSum :: [(Text.Text, Aeson.Value -> Aeson.Result (f x))]
 
 instance (GJSONSum f1, GJSONSum f2) => GJSONSum (f1 :+: f2) where
     gtoJSONSum (L1 l) = gtoJSONSum l
     gtoJSONSum (R1 r) = gtoJSONSum r
-    gfromJSONSum _ = map (second (fmap L1 .)) leftMap ++
+    gfromJSONSum = map (second (fmap L1 .)) leftMap ++
                      map (second (fmap R1 .)) rightMap
         where
-          leftMap = gfromJSONSum (Proxy :: Proxy f1)
-          rightMap = gfromJSONSum (Proxy :: Proxy f2)
+          leftMap = gfromJSONSum
+          rightMap = gfromJSONSum
 
 instance (GJSONProd f, Constructor cn) => GJSONSum (M1 C cn f) where
     gtoJSONSum (M1 a)
         = let cName = Text.pack $ conName (undefined :: (M1 C cn f x)) in
           Aeson.object [ _SELECTOR_NAME Aeson..= Aeson.String cName
                        , cName Aeson..= gtoJSONProd a ]
-    gfromJSONSum _
+    gfromJSONSum
         = let cName = Text.pack $ conName (undefined :: (M1 C cn f x)) in
           [(cName, fmap M1 . gfromJSONProd)]
 
