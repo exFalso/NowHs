@@ -7,7 +7,7 @@ import Control.Concurrent
 import Control.Monad (forM_)
 
 processes :: [(String, [String])]
-processes = [ ("./dist/build/testserver/testserve", [])
+processes = [ ("./dist/build/testserver/testserver", [])
             , ("bash", ["-c", "python3 -m http.server 7357 || python -m SimpleHTTPServer 7357"])
             ]
 

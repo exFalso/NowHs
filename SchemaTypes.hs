@@ -45,6 +45,8 @@ mapNamePrimTyp
                    , (''Int8,    Num)
                      
                    , (''Object, Obj)
+                     
+                   , (''Bool,   Boolean)
                    ]
 
 -- collections that map to []

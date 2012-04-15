@@ -24,6 +24,7 @@ clean:
 	rm -f .cabal-configured
 
 init: statics_fetch_force
+	echo "INIT"
 
 .cabal-configured: *.cabal
 	cabal configure

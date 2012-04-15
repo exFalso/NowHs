@@ -10,13 +10,10 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.STM
 
-import Language.Haskell.TH
-
-
 import qualified Network.WebSockets as WS
 
 data NowHsError
-    = NoSuchFunction Name
+    = NoSuchFunction String
     | IncorrectNumArgs
     | JSONParseError String
     deriving (Show, Typeable)
