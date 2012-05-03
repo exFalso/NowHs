@@ -1,4 +1,4 @@
-{-# LANGUAGE DefaultSignatures, FlexibleContexts, FlexibleInstances, StandaloneDeriving, DeriveGeneric, TypeOperators, TypeFamilies, MultiParamTypeClasses, UndecidableInstances, ScopedTypeVariables, DataKinds, PolyKinds, OverloadedStrings, OverlappingInstances #-}
+{-# LANGUAGE DefaultSignatures, FlexibleContexts, FlexibleInstances, StandaloneDeriving, DeriveGeneric, TypeOperators, FunctionalDependencies, MultiParamTypeClasses, UndecidableInstances, ScopedTypeVariables, OverloadedStrings, OverlappingInstances, KindSignatures, EmptyDataDecls, DataKinds, PolyKinds #-}
 
 module JSON where
 
@@ -26,7 +26,7 @@ class GJSON (f :: * -> *) where
     gtoJSON :: f x -> Aeson.Value
     gfromJSON :: Aeson.Value -> Aeson.Result (f x)
 
-data Tree a = Leaf (a, Int) | Branch (Tree a) (Tree a)
+data Tree a = Leaf (a) | Branch {leftBranch :: (Tree a), rightBranch :: (Tree a) }
               deriving (Show)
 deriving instance Generic (Tree a)
 instance (JSON a) => JSON (Tree a)
@@ -38,7 +38,11 @@ deriving instance Generic Wat
 data Wat2 = Wat21 Int String
            deriving (Show)
 deriving instance Generic Wat2
--- instance JSON Wat
+instance JSON Wat
+
+instance JSON () where
+    toJSON = Aeson.toJSON
+    fromJSON = Aeson.fromJSON
 
 instance JSON Int where
     toJSON = Aeson.toJSON
@@ -52,24 +56,45 @@ instance JSON String where
     toJSON = Aeson.toJSON
     fromJSON = Aeson.fromJSON
 
+instance JSON a => JSON [a] where
+    toJSON = Aeson.Array . Vector.fromList . map toJSON
+    fromJSON (Aeson.Array v) = mapM fromJSON . Vector.toList $ v
+    fromJSON _ = Aeson.Error "Array expected"
+
+instance JSON Aeson.Value where
+    toJSON = id
+    fromJSON = return
+
 instance (JSON a, JSON b) => JSON (a, b)
 
 -- aasd :: Aeson.Result Wat
 -- aasd = fromJSON . toJSON $ Wat1 1 "asd"
 
-fdgh :: Aeson.Result (Tree Int)
-fdgh = fromJSON . toJSON $ Leaf (1 :: Int, 2)
+-- fdgh :: Aeson.Result (Tree (Int, Int))
+-- fdgh = fromJSON . toJSON $ Branch (Leaf (1 :: Int, 2 :: Int)) (Leaf (3, 4))
 
--- fdgh2 :: Aeson.Result (Tree Int)
-fdgh2 :: Aeson.Value
-fdgh2 = toJSON $ Leaf (1 :: Int, 2)
+-- data Iden a = Iden a
+--               deriving (Show)
+-- deriving instance Generic (Iden a)
+-- instance (JSON a) => JSON (Iden a)
 
-main :: IO ()
-main = print fdgh
+-- -- fdgh2 :: Aeson.Result (Tree Int)
+-- fdgh2 :: Aeson.Value
+-- fdgh2 = toJSON $ Iden (1 :: Int, 2 :: Int)
 
-instance Datatype w => Show (M1 D w t x) where
-    show a = datatypeName a
+-- main :: IO ()
+-- main = test2
 
+-- test :: IO ()
+-- test = print $ (fromJSON fdgh2 :: Aeson.Result (Iden (Int, Int)))
+
+-- test2 :: IO ()
+-- test2 = print $ fdgh
+
+-- instance Datatype w => Show (M1 D w t x) where
+--     show a = datatypeName a
+
+data Proxy1 (k :: * -> *) = Proxy1
 data Proxy k = Proxy
 
 
@@ -125,18 +150,21 @@ class GJSONProd f where
     gfromJSONProd :: Aeson.Value -> Aeson.Result (f x)
 
 -- explicit traversal just to know whether it's a record or not
-type family HasSelector (s :: * -> *) :: Bool
-type instance HasSelector (M1 S NoSelector t) = False
-type instance HasSelector (M1 S s t) = False
-type instance HasSelector (f1 :*: f2) = HasSelector f1
+class HasSelector (f :: * -> *) (b :: Bool) | f -> b
 
-class GJSONProdSel f (s :: Bool) where
-    gtoJSONProdSel   :: Proxy s -> f x -> Aeson.Value
-    gfromJSONProdSel :: Proxy s -> Aeson.Value -> Aeson.Result (f x)
+instance HasSelector (M1 S NoSelector t) False
+instance (HasSelector f b) => HasSelector (M1 S s f) b
+instance HasSelector (K1 p a) True
+instance HasSelector U1 False
+instance (HasSelector f1 b) => HasSelector (f1 :*: f2) b
 
-instance (s ~ HasSelector f, GJSONProdSel f s) => GJSONProd f where
-    gtoJSONProd   = gtoJSONProdSel (Proxy :: Proxy s)
-    gfromJSONProd = gfromJSONProdSel (Proxy :: Proxy s)
+class GJSONProdSel f (b :: Bool) where
+    gtoJSONProdSel   :: Proxy b -> f x -> Aeson.Value
+    gfromJSONProdSel :: Proxy b -> Aeson.Value -> Aeson.Result (f x)
+
+instance (HasSelector f b, GJSONProdSel f b) => GJSONProd f where
+    gtoJSONProd   = gtoJSONProdSel (Proxy :: Proxy b)
+    gfromJSONProd = gfromJSONProdSel (Proxy :: Proxy b)
 
 -- no selectors
 instance (GJSONList (f1 :*: f2)) => GJSONProdSel (f1 :*: f2) False where
@@ -149,6 +177,12 @@ instance (GJSONList (f1 :*: f2)) => GJSONProdSel (f1 :*: f2) False where
 instance (JSON a) => GJSONProdSel (M1 S NoSelector (K1 p a)) False where
     gtoJSONProdSel _ (M1 (K1 a)) = toJSON a
     gfromJSONProdSel _ v         = M1 . K1 <$> fromJSON v
+
+instance GJSONProdSel U1 False where
+    gtoJSONProdSel _ _ = Aeson.Array Vector.empty
+    gfromJSONProdSel _ (Aeson.Array v)
+        | v == Vector.empty = return U1
+    gfromJSONProdSel _ _ = Aeson.Error "Empty array expected"
 
 class GJSONList f where
     gtoJSONList   :: f x -> [Aeson.Value] -> [Aeson.Value]
@@ -177,7 +211,7 @@ instance (HasSelOrder f, GJSONAssoc f) => GJSONProdSel f True where
       (r, []) <- runStateT gfromJSONAssoc $ map snd ordLst
       return r
           where
-            ordr = order (Proxy :: Proxy f)
+            ordr = order (Proxy1 :: Proxy1 f)
             match (s, v) = case HashMap.lookup s ordr of
                 Nothing -> Aeson.Error $ "\"" ++ show s ++ "\" is not a valid field name"
                 Just i -> return (i, v)
@@ -185,20 +219,19 @@ instance (HasSelOrder f, GJSONAssoc f) => GJSONProdSel f True where
 
 type SelOrder = State (Int, HashMap.HashMap Text.Text Int)
 
-order :: (HasSelOrder f) => Proxy f -> HashMap.HashMap Text.Text Int
+order :: (HasSelOrder f) => Proxy1 f -> HashMap.HashMap Text.Text Int
 order p = snd . snd $ runState (getSelOrder p) (0, HashMap.empty)
 
 class HasSelOrder (f :: * -> *) where
-    getSelOrder :: Proxy f -> SelOrder ()
+    getSelOrder :: Proxy1 f -> SelOrder ()
 
 instance (HasSelOrder f1, HasSelOrder f2) => HasSelOrder (f1 :*: f2) where
-    getSelOrder _ = getSelOrder (Proxy :: Proxy f1) >> getSelOrder (Proxy :: Proxy f2)
+    getSelOrder _ = getSelOrder (Proxy1 :: Proxy1 f1) >> getSelOrder (Proxy1 :: Proxy1 f2)
 
 instance (Selector s) => HasSelOrder (M1 S s (K1 p a)) where
     getSelOrder _ = do
       (i, m) <- get
       put (i + 1, HashMap.insert (Text.pack $ selName (undefined :: (M1 S s (K1 p a) x))) i m)
-    
 
 class GJSONAssoc f where
     gtoJSONAssoc :: f x -> [(Text.Text, Aeson.Value)] -> [(Text.Text, Aeson.Value)]
