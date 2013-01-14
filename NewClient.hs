@@ -3,7 +3,7 @@ module NewClient where
 
 import IDGen
 import FunctionID
-import NowHs
+import IR
 
 import Control.Monad
 import Control.Monad.IO.Class

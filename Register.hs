@@ -1,5 +1,6 @@
-{-# LANGUAGE KindSignatures, DataKinds, NamedFieldPuns, MultiParamTypeClasses, FlexibleInstances, ConstraintKinds, UndecidableInstances, GADTs, ScopedTypeVariables, TypeFamilies, FunctionalDependencies #-}
-module Register where
+{-# LANGUAGE DataKinds, MultiParamTypeClasses, FlexibleInstances, GADTs, FunctionalDependencies #-}
+module Register ( Register(..)
+                ) where
 
 import FunctionID
 import NowHs
@@ -10,12 +11,11 @@ import Control.Concurrent.STM
 import Control.Monad.IO.Class
 import qualified Data.IntMap as IM
 
+class (MonadIO m, Functor m) => Register fty m f where
+    register :: f -> m (FunctionID fty)
+    lookup :: FunctionID fty -> m (Either String f)
 
-class (MonadIO m, Functor m) => Register fty s m f where
-    register :: f -> NowHsT False s m (FunctionID fty)
-    lookup :: FunctionID fty -> NowHsT False s m (Either String f)
-
-instance (Typeable f, MonadIO m, Functor m) => Register ServerType s m f where
+instance (MonadNowHs m, Typeable f) => Register ServerType m f where
     register f = do
       sid <- genFunID
       registerServer sid f
@@ -25,13 +25,13 @@ instance (Typeable f, MonadIO m, Functor m) => Register ServerType s m f where
       mf <- IM.lookup sid <$> (liftIO . atomically . readTVar $ sm)
       return $ case mf of
                  Nothing -> Left "Server function ID not found"
-                 Just (AnyServer g) ->
+                 Just (AnyFun g) ->
                      case cast g of
                        Nothing -> Left "Failed to cast functiontype"
                        Just f -> return f
 
-instance (MonadIO m, Functor m, Typeable f) =>
-    Register ClientType s m f where
+instance (MonadNowHs m, Typeable f) =>
+    Register ClientType m f where
     register f = do
       cid <- genFunID
       registerClient cid f
@@ -41,20 +41,16 @@ instance (MonadIO m, Functor m, Typeable f) =>
       mf <- IM.lookup sid <$> (liftIO . atomically . readTVar $ sm)
       return $ case mf of
                  Nothing -> Left "Client function ID not found"
-                 Just (AnyClient g) ->
+                 Just (AnyFun g) ->
                      case cast g of
                        Nothing -> Left "Failed to cast functiontype"
                        Just f -> return f
 
-registerServer :: (MonadIO m, Functor m, Typeable f) =>
-                  FunctionID ServerType -> f -> NowHsT False s m ()
-registerServer (ServerID cid) f = do
-  sm <- getServerMap
-  liftIO . atomically . modifyTVar sm . IM.insert cid $ AnyServer f
+registerFun :: (Typeable f, MonadIO m) => Int -> f -> TVar (IM.IntMap (AnyFun fty)) -> m ()
+registerFun fid f sm = liftIO . atomically . modifyTVar sm . IM.insert fid $ AnyFun f
 
-registerClient :: (MonadIO m, Functor m, Typeable f) =>
-                  FunctionID ClientType -> f -> NowHsT False s m ()
-registerClient (ClientID cid) f = do
-  cm <- getClientMap
-  liftIO . atomically . modifyTVar cm . IM.insert cid $ AnyClient f
+registerServer :: (Typeable t, MonadNowHs m) => FunctionID ServerType -> t -> m ()
+registerServer (ServerID sid) f = getServerMap >>= registerFun sid f
 
+registerClient :: (Typeable t, MonadNowHs m) => FunctionID ClientType -> t -> m ()
+registerClient (ClientID cid) f = getClientMap >>= registerFun cid f
