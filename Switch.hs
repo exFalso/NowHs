@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, DataKinds, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, StandaloneDeriving #-}
+{-# LANGUAGE GADTs, DataKinds, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 module Switch where
 
 import Control.Monad.Trans

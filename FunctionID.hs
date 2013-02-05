@@ -12,7 +12,9 @@ import Control.Monad.IO.Class
 import Control.Applicative
 import Control.Concurrent.STM
 
-data FunctionType = ClientType | ServerType
+data FunctionType
+    = ClientType | ServerType
+      deriving (Show)
 
 data FunctionID fty where
     ClientID :: Int -> FunctionID ClientType

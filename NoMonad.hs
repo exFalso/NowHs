@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, PolyKinds #-}
 module NoMonad where
 
 import Control.Monad.Identity

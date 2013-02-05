@@ -19,7 +19,7 @@ import Control.Applicative
 
 newtype IDGenT i m a
     = IDGenT (ReaderT (TVar i) m a)
-      deriving (Monad, Functor, Applicative, MonadIO, Forkable)
+      deriving (Monad, Functor, Applicative, MonadIO, Forkable, MonadTrans)
 
 type IDGen i = IDGenT i Identity
 
