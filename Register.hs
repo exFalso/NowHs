@@ -32,7 +32,7 @@ class (MonadIO m, Functor m) => RegisterFun fty m where
     registerFun :: (Typeable f) => Proxy fty -> f -> m (FunctionID fty)
     lookupFun :: (Typeable f) => Proxy fty -> FunctionID fty -> m (Either String f)
 
-instance (MonadNowHs m) => RegisterFun ServerType m where
+instance (MonadNowHs m rep) => RegisterFun ServerType m where
     registerFun _ f = do
       sid <- genFunID
       registerServer sid f
@@ -47,7 +47,7 @@ instance (MonadNowHs m) => RegisterFun ServerType m where
                        Nothing -> Left "Failed to cast functiontype"
                        Just f -> return f
 
-instance (MonadNowHs m) => RegisterFun ClientType m where
+instance (MonadNowHs m rep) => RegisterFun ClientType m where
     registerFun _ f = do
       cid <- genFunID
       registerClient cid f
@@ -65,8 +65,8 @@ instance (MonadNowHs m) => RegisterFun ClientType m where
 registerFunction :: (Typeable f, MonadIO m) => Int -> f -> TVar (IM.IntMap (AnyFun fty)) -> m ()
 registerFunction fid f sm = liftIO . atomically . modifyTVar sm . IM.insert fid $ AnyFun f
 
-registerServer :: (Typeable t, MonadNowHs m) => FunctionID ServerType -> t -> m ()
+registerServer :: (Typeable t, MonadNowHs m rep) => FunctionID ServerType -> t -> m ()
 registerServer (ServerID sid) f = getServerMap >>= registerFunction sid f
 
-registerClient :: (Typeable t, MonadNowHs m) => FunctionID ClientType -> t -> m ()
+registerClient :: (Typeable t, MonadNowHs m rep) => FunctionID ClientType -> t -> m ()
 registerClient (ClientID cid) f = getClientMap >>= registerFunction cid f

@@ -64,27 +64,27 @@ class (MonadIO m, Functor m) => FromRep rep m a where
 --     fromRep (SimpleArgument r) = return . from $ r
 --     fromRep _ = return $ Left "Non-function value expected"
 
-instance (Register fty m (b -> f), MonadNowHs m) => ToRep rep m (b -> f) where
+instance (Register fty m (b -> f), MonadNowHs m rep) => ToRep rep m (b -> f) where
     toRep f = phantomProxy (Proxy :: Proxy fty) . functionToRep $ f
 instance (MonadIO m, Functor m, Typeable (b -> f), Side f ~ fty,
-          MonadNowHs m, RepToFunction fty (b -> f)) => FromRep rep m (b -> f) where
+          MonadNowHs m rep, RepToFunction fty (b -> f)) => FromRep rep m (b -> f) where
     fromRep r = repToFunction (Proxy :: Proxy fty) r
 
-instance (Register ServerType m (Server s rep um a), MonadNowHs m,
+instance (Register ServerType m (Server s rep um a), MonadNowHs m rep,
           MonadIO m, Functor m) => ToRep rep m (Server s rep um a) where
     toRep s = phantomProxy (Proxy :: Proxy ServerType) . functionToRep $ s
-instance (MonadIO m, Functor m, MonadNowHs m,
+instance (MonadIO m, Functor m, MonadNowHs m rep,
           Typeable (Server s rep um a)) => FromRep rep m (Server s rep um a) where
     fromRep r = repToFunction (Proxy :: Proxy ServerType) r
 
-instance (Register ClientType m (Client rep m a), MonadNowHs m,
+instance (Register ClientType m (Client rep m a), MonadNowHs m rep,
           MonadIO m, Functor m) => ToRep rep m (Client rep m a) where
     toRep c = phantomProxy (Proxy :: Proxy ClientType) . functionToRep $ c
-instance (MonadIO m, Functor m, MonadNowHs m,
+instance (MonadIO m, Functor m, MonadNowHs m rep,
           Typeable (Client rep m a)) => FromRep rep m (Client rep m a) where
     fromRep r = repToFunction (Proxy :: Proxy ClientType) r
     
-functionToRep :: forall fty m f rep. (Register fty m f, MonadIO m, Functor m, MonadNowHs m) =>
+functionToRep :: forall fty m f rep. (Register fty m f, MonadIO m, Functor m, MonadNowHs m rep) =>
                   f -> PhantomT m fty (Argument rep)
 functionToRep f = PhantomT $ do
   fid <- register f :: m (FunctionID fty)
@@ -93,7 +93,7 @@ functionToRep f = PhantomT $ do
     ServerID i -> ServerFunction i
 
 class (Typeable f) => RepToFunction (fty :: FunctionType) f where
-    repToFunction :: (MonadIO m, Functor m, MonadNowHs m) =>
+    repToFunction :: (MonadIO m, Functor m, MonadNowHs m rep) =>
                      Proxy fty -> Argument rep -> m (Either String f)
 
 instance (Typeable f, Side f ~ ServerType) => RepToFunction ServerType f where

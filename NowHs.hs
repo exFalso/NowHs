@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, DataKinds, GADTs, KindSignatures, FlexibleInstances, ConstraintKinds, StandaloneDeriving, FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, DataKinds, GADTs, KindSignatures, FlexibleInstances, ConstraintKinds, StandaloneDeriving, FlexibleContexts, FunctionalDependencies #-}
 module NowHs
     ( NowHsT
     , MonadNowHs(..)
@@ -63,18 +63,18 @@ runNowHsT n = do
 nowHsError :: (Monad m) => Error -> NowHsT True rep m a
 nowHsError = NowHsT . OnT . Err.throwError
 
-class (Functor m, MonadIO m, MonadIDGen Int m) => MonadNowHs m where
+class (Functor m, MonadIO m, MonadIDGen Int m) => MonadNowHs m rep | m -> rep where
     getEnv :: m NowHsEnv
     -- liftUm :: um a -> m a
 
-instance (SwitchClass err, Functor m, MonadIO m) => MonadNowHs (NowHsT err rep m) where
+instance (SwitchClass err, Functor m, MonadIO m) => MonadNowHs (NowHsT err rep m) rep where
     getEnv = NowHsT . lift $ ask
     -- liftUm = lift
 
-getServerMap :: (MonadNowHs m) => m (TVar ServerMap)
+getServerMap :: (MonadNowHs m rep) => m (TVar ServerMap)
 getServerMap = serverFuns <$> getEnv
 
-getClientMap :: (MonadNowHs m) => m (TVar ClientMap)
+getClientMap :: (MonadNowHs m rep) => m (TVar ClientMap)
 getClientMap = clientFuns <$> getEnv
 
 data AnyFun (fty :: FunctionType) where

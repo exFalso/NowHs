@@ -42,7 +42,7 @@ newtype IfaceT iface m a
 
 type Binding fty = [(Int, FunDesc fty)]
 
-runIfaceT :: (RegisterInterface m iface, MonadNowHs m) =>
+runIfaceT :: (RegisterInterface m iface, MonadNowHs m rep) =>
              (Binding ClientType -> IfaceT iface m a) -> m a
 runIfaceT f = do
   (iface, clientBinding) <- runWriterT registerInterface
