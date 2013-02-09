@@ -65,21 +65,21 @@ class (MonadIO m, Functor m) => FromRep rep m a where
 --     fromRep _ = return $ Left "Non-function value expected"
 
 instance (Register fty m (b -> f), MonadNowHs m rep) => ToRep rep m (b -> f) where
-    toRep f = phantomProxy (Proxy :: Proxy fty) . functionToRep $ f
+    toRep f = phantomTProxy (Proxy :: Proxy fty) . functionToRep $ f
 instance (MonadIO m, Functor m, Typeable (b -> f), Side f ~ fty,
           MonadNowHs m rep, RepToFunction fty (b -> f)) => FromRep rep m (b -> f) where
     fromRep r = repToFunction (Proxy :: Proxy fty) r
 
 instance (Register ServerType m (Server s rep um a), MonadNowHs m rep,
           MonadIO m, Functor m) => ToRep rep m (Server s rep um a) where
-    toRep s = phantomProxy (Proxy :: Proxy ServerType) . functionToRep $ s
+    toRep s = phantomTProxy (Proxy :: Proxy ServerType) . functionToRep $ s
 instance (MonadIO m, Functor m, MonadNowHs m rep,
           Typeable (Server s rep um a)) => FromRep rep m (Server s rep um a) where
     fromRep r = repToFunction (Proxy :: Proxy ServerType) r
 
 instance (Register ClientType m (Client rep m a), MonadNowHs m rep,
           MonadIO m, Functor m) => ToRep rep m (Client rep m a) where
-    toRep c = phantomProxy (Proxy :: Proxy ClientType) . functionToRep $ c
+    toRep c = phantomTProxy (Proxy :: Proxy ClientType) . functionToRep $ c
 instance (MonadIO m, Functor m, MonadNowHs m rep,
           Typeable (Client rep m a)) => FromRep rep m (Client rep m a) where
     fromRep r = repToFunction (Proxy :: Proxy ClientType) r

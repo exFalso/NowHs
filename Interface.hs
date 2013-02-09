@@ -7,9 +7,9 @@ import FunctionID
 import DynStat
 import Forkable
 import NowHs
+import Phantom
+import TypeDesc
 
-import Data.Typeable
-import Control.Concurrent.STM
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Reader
@@ -48,14 +48,9 @@ runIfaceT f = do
   (iface, clientBinding) <- runWriterT registerInterface
   runReaderT (unIfaceT $ f clientBinding) iface
 
-data TypeDesc
-    = SimpleDesc TypeRep
-    | FunctionDesc [TypeRep] TypeRep -- arguments, return type
-      deriving (Show)
-
 data FunDesc (fty :: FunctionType)
     = FunDesc { funName :: String
-              , funType :: TypeDesc
+              , funDesc :: FunctionDesc
               }
       deriving (Show)
 
@@ -74,11 +69,13 @@ instance (RegisterIfaceGeneric m a) => RegisterIfaceGeneric m (D1 d (C1 c a)) wh
     registerIface = M1 . M1 <$> registerIface
 instance (RegisterIfaceGeneric m a, RegisterIfaceGeneric m b) => RegisterIfaceGeneric m (a :*: b) where
     registerIface = liftM2 (:*:) registerIface registerIface
-instance (RegisterIfaceFunction m a, HasSelector g True, Selector s) =>
+instance (RegisterIfaceFunction m a, HasSelector g True, Selector s, GetFunctionDesc a) =>
     RegisterIfaceGeneric m (S1 s (K1 p a)) where
         registerIface = do
           (ClientID rawFid, f) <- lift (registerIfaceFun :: m (FunctionID ClientType, a))
-          tell $ [(rawFid, selName (undefined :: S1 s (K1 p a) x))]
+          let functionDesc = phantomProxy (Proxy :: Proxy a) getFunctionDesc
+              functionName = selName (undefined :: S1 s (K1 p a) x)
+          tell $ [(rawFid, FunDesc functionName functionDesc)]
           return $ M1 (K1 f)
 
 class (Monad m, Functor m) => RegisterIfaceFunction m a where

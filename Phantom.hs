@@ -1,9 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, StandaloneDeriving, DefaultSignatures, PolyKinds, TypeOperators #-}
 module Phantom
     ( module Proxy
+    , Phantom
     , PhantomT(..)
     , MonadPhantom(..)
     , runPhantom
+    , phantomTProxy
     , phantomProxy
     , proxy
     ) where
@@ -20,8 +22,11 @@ type Phantom = PhantomT Identity
 runPhantom :: Phantom p a -> a
 runPhantom = runIdentity . runPhantomT
 
-phantomProxy :: Proxy p -> PhantomT m p a -> m a
-phantomProxy _ = runPhantomT
+phantomTProxy :: Proxy p -> PhantomT m p a -> m a
+phantomTProxy _ = runPhantomT
+
+phantomProxy :: Proxy p -> Phantom p a -> a
+phantomProxy _ = runPhantom
 
 proxy :: (MonadPhantom m, Monad (m p)) => m p (Proxy p)
 proxy = return Proxy
