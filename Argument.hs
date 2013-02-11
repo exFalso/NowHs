@@ -58,11 +58,11 @@ class (MonadIO m, Functor m) => ToRep rep m a | m -> rep where
 class (MonadIO m, Functor m) => FromRep rep m a where
     fromRep :: (Argument rep) -> m (Either String a)
 
--- instance (GenRep rep, CxtTo rep a, MonadIO m, Functor m) => ToRep rep m a where
---     toRep a = return . SimpleArgument . to $ a
--- instance (GenRep rep, CxtFrom rep a, MonadIO m, Functor m) => FromRep rep m a where
---     fromRep (SimpleArgument r) = return . from $ r
---     fromRep _ = return $ Left "Non-function value expected"
+instance (GenRep rep, CxtTo rep a, MonadIO m, Functor m) => ToRep rep m a where
+    toRep a = return . SimpleArgument . to $ a
+instance (GenRep rep, CxtFrom rep a, MonadIO m, Functor m) => FromRep rep m a where
+    fromRep (SimpleArgument r) = return . from $ r
+    fromRep _ = return $ Left "Non-function value expected"
 
 instance (Register fty m (b -> f), MonadNowHs m rep) => ToRep rep m (b -> f) where
     toRep f = phantomTProxy (Proxy :: Proxy fty) . functionToRep $ f

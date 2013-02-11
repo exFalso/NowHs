@@ -6,7 +6,6 @@ import Util
 import FunctionID
 import DynStat
 import Forkable
-import NowHs
 import Phantom
 import TypeDesc
 
@@ -25,16 +24,6 @@ newtype DynIfaceT dyn m a = DynIfaceT { unDynIface :: DynStatT dyn Interface m a
                                       }
     deriving (Functor, Monad, MonadIO, MonadTrans, Forkable)
 
-class (Monad m) => Call m f g where
-    callM :: m f -> g
-instance (Call m f g) => Call m (a -> f) (a -> g) where
-    callM maf a = callM $ liftM ($ a) maf
-instance (Monad m) => Call m (Client rep m a) (m (Client rep m a)) where
-    callM = id
-
-
-getIface :: MonadReader a (DynStatT dyn Interface m) => DynIfaceT dyn m a
-getIface = DynIfaceT ask
 
 newtype IfaceT iface m a
     = IfaceT { unIfaceT :: ReaderT iface m a }
@@ -42,11 +31,26 @@ newtype IfaceT iface m a
 
 type Binding fty = [(Int, FunDesc fty)]
 
-runIfaceT :: (RegisterInterface m iface, MonadNowHs m rep) =>
+runIfaceT :: (RegisterInterface m iface) =>
              (Binding ClientType -> IfaceT iface m a) -> m a
 runIfaceT f = do
   (iface, clientBinding) <- runWriterT registerInterface
   runReaderT (unIfaceT $ f clientBinding) iface
+
+class (Monad m) => MonadIface iface m | m -> iface where
+    getIface :: m iface
+instance (Monad m) => MonadIface iface (IfaceT iface m) where
+    getIface = IfaceT ask
+
+-- class (Monad m) => Call m f g where
+--     callM :: m f -> g
+-- instance (Call m f g) => Call m (a -> f) (a -> g) where
+--     callM maf a = callM $ liftM ($ a) maf
+-- instance (Monad m) => Call m (Client rep m a) (m (Client rep m a)) where
+--     callM = id
+
+-- call :: forall iface m f g. (MonadIface iface m, Call m f g) => (iface -> f) -> g
+-- call f = callM $ (liftM f getIface :: m f)
 
 data FunDesc (fty :: FunctionType)
     = FunDesc { funName :: String

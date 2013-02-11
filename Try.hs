@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, FlexibleInstances, MultiParamTypeClasses, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds, FlexibleInstances, MultiParamTypeClasses, FlexibleContexts, ScopedTypeVariables, DeriveGeneric, NamedFieldPuns #-}
 module Try where
 
 import IR
@@ -6,13 +6,32 @@ import Argument
 import qualified NowHs as N
 import qualified Server as S
 import qualified Data.Aeson as A
+import Interface
+import Client
+import FunctionID
 
 import Prelude hiding (lookup)
 import Data.Typeable
-
+import GHC.Generics
 
 type NowHs = N.NowHsT False A.Value IO
 type Server = S.Server () A.Value IO
+type Cl = Client A.Value IO
+
+data Iface
+    = Iface { echo :: Int -> Cl Integer
+            }
+      deriving (Generic)
+
+hello :: IfaceT Iface Server (Cl Integer)
+hello = do
+  iface <- getIface
+  return $ echo iface 1
+
+asd :: Server (Binding ClientType)
+asd = runIfaceT (\b -> do
+                   _ <- hello
+                   return b)
 
 now :: NowHs (Argument A.Value)
 now = do

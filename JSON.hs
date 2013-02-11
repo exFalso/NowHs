@@ -27,9 +27,9 @@ instance IR Rep where
     toIR = toJSON
     fromIR = fromJSON
 
-class (MonadIO m, Functor m, MonadNowHs m) => ToJSON m a where
+class (MonadIO m, Functor m) => ToJSON m a where
     toJSON :: a -> m Rep
-class (MonadIO m, Functor m, MonadNowHs m) => FromJSON m a where
+class (MonadIO m, Functor m) => FromJSON m a where
     fromJSON :: Rep -> m (Either String a)
 
 instance (A.ToJSON a, MonadIO m, Functor m, MonadNowHs m) => ToJSON m a where
