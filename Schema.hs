@@ -70,7 +70,8 @@ class HasSchema a where
     schema :: Schema a
 
 -- for the external interface
-data AnySchema = forall a. MkAnySchema { unMkAnySchema :: (Schema a) }
+-- TODO remove (ToJSON a) restriction after no-context-on-phantom branch has been merged
+data AnySchema = forall a. (ToJSON a) => MkAnySchema { unMkAnySchema :: (Schema a) }
 instance ToJSON AnySchema where
     toJSON (MkAnySchema s) = toJSON s
 
