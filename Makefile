@@ -26,7 +26,7 @@ clean:
 init: statics_fetch_force
 
 .cabal-configured: *.cabal
-	cabal configure
+	cabal configure --disable-library-profiling --disable-shared
 	touch .cabal-configured
 
 build: .cabal-configured
